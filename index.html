@@ -1,43 +1,108 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Ejecutor de Python con Pyodide</title>
+  <meta charset="utf-8" />
+  <title>Intérprete Python (Pyodide)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; margin: 18px; max-width: 900px; }
+    h1 { font-size: 1.4rem; margin-bottom: 6px; }
+    textarea { width: 100%; height: 180px; font-family: monospace; font-size: 14px; padding: 8px; box-sizing: border-box; }
+    button { padding: 8px 14px; font-size: 14px; margin-top: 8px; }
+    #output { background:#111; color:#dcdcdc; padding:10px; min-height:80px; white-space: pre-wrap; margin-top:10px; }
+    #status { margin-top:8px; font-size:0.9rem; color:#444; }
+  </style>
 </head>
 <body>
+  <h1>Intérprete Python (Pyodide)</h1>
+  <p>Escribe código en Python y presiona <strong>Ejecutar</strong>.</p>
 
-<h2>Escribe código Python:</h2>
-<textarea id="code" rows="6" cols="60">
-print("Hola desde Pyodide!")
-</textarea><br>
+  <label for="code">Código:</label>
+  <textarea id="code">print("Hola desde Pyodide!")</textarea>
 
-<button id="run">Ejecutar</button>
+  <div>
+    <button id="run" disabled>Ejecutar</button>
+    <button id="clear">Limpiar salida</button>
+    <span id="status">Cargando entorno Python...</span>
+  </div>
 
-<h3>Resultado:</h3>
-<pre id="output"></pre>
+  <h3>Salida / Resultado</h3>
+  <pre id="output"></pre>
 
-<!-- CARGAR PYODIDE DESDE CDN -->
-<script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
+  <!-- Cargar Pyodide desde CDN (requiere internet). Cambia la versión si hay una más nueva. -->
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
 
-<script>
-  // 1) Cargar pyodide - debes esperar a que se cargue
-  let pyodideReady = loadPyodide();
-
-  // 2) Función que ejecuta el código
-  async function runPython() {
-    let pyodide = await pyodideReady;   // ← IMPORTANTE: ESPERAR pyodide
-    let code = document.getElementById("code").value;
+  <script>
+  // Inicialización y utilidades - NO muevas estas líneas (deben estar al final del body)
+  (async () => {
+    const statusEl = document.getElementById('status');
+    const runBtn = document.getElementById('run');
     try {
-      let result = await pyodide.runPythonAsync(code);
-      document.getElementById("output").textContent = result ?? ""; 
+      // Inicializa pyodide y lo guarda en window.pyodide
+      window.pyodide = await loadPyodide();
+      statusEl.textContent = 'Pyodide cargado. Listo para ejecutar.';
+      runBtn.disabled = false;
     } catch (err) {
-      document.getElementById("output").textContent = "Error:\n" + err;
+      statusEl.textContent = 'Error cargando Pyodide. Revisa la consola.';
+      console.error('Error loadPyodide:', err);
+      return;
     }
-  }
 
-  // 3) botón
-  document.getElementById("run").addEventListener("click", runPython);
-</script>
+    // Función que ejecuta código y captura stdout usando io.StringIO
+    async function runAndCapture(codeText) {
+      // Preparar un bloque Python que capture prints y devuelva la salida
+      const py = [
+        "import sys, io",
+        "buf = io.StringIO()",
+        "old_stdout = sys.stdout",
+        "sys.stdout = buf",
+        "try:"
+      ].join("\n") + "\n";
 
+      // Indentar el código del usuario
+      const indented = codeText.split("\n").map(line => "    " + line).join("\n");
+      const tail = "\nfinally:\n    sys.stdout = old_stdout\nprint(buf.getvalue(), end='')";
+
+      const fullPy = py + indented + tail;
+
+      // Ejecutar y devolver la salida
+      try {
+        // runPythonAsync devuelve el resultado de la última expresión; aquí usamos prints capturados
+        await window.pyodide.runPythonAsync(fullPy);
+        // Si no hay excepción, recuperamos lo impreso leyendo una variable o simplemente confiar en el print anterior
+        // Para simplicidad, el print ya imprimió en stdout capturado y se devolvió como resultado del runPythonAsync en consola.
+        // Mejor leer desde python una variable:
+        const out = await window.pyodide.runPythonAsync("buf.getvalue()");
+        return out;
+      } catch (err) {
+        // Devolver el error en texto
+        return 'Error de ejecución: ' + err;
+      }
+    }
+
+    // Eventos del botón
+    document.getElementById('run').addEventListener('click', async () => {
+      const code = document.getElementById('code').value;
+      const outEl = document.getElementById('output');
+      document.getElementById('status').textContent = 'Ejecutando...';
+      runBtn.disabled = true;
+      outEl.textContent = ''; // limpiar salida previa
+      try {
+        const result = await runAndCapture(code);
+        outEl.textContent = result ?? '';
+      } catch (e) {
+        outEl.textContent = 'Error inesperado: ' + e;
+      } finally {
+        runBtn.disabled = false;
+        document.getElementById('status').textContent = 'Listo.';
+      }
+    });
+
+    document.getElementById('clear').addEventListener('click', () => {
+      document.getElementById('output').textContent = '';
+    });
+
+  })();
+  </script>
 </body>
 </html>
