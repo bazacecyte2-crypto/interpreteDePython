@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Reto Python</title>
+</head>
+<body>
+  <h2>Reto: Calcula tu edad en 10 años</h2>
+  <textarea id="python-code" rows="6" cols="50">
+edad = 25
+print("Tu edad en 10 años será:", edad + 10)
+  </textarea>
+  <br>
+  <button onclick="runCode()">Ejecutar</button>
+  <pre id="output"></pre>
+  <script>
+    async function runCode() {
+      const code = document.getElementById('python-code').value;
+      let pyodide = await loadPyodide();
+      let result = await pyodide.runPython(code);
+      document.getElementById('output').textContent = result || "Código ejecutado.";
+    }
+  </script>
+</body>
+</html>
