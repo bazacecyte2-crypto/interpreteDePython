@@ -1,40 +1,121 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Ejercicio 1_U2</title>
-  <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+<meta charset="utf-8" />
+<title>Ejercicio 1 - Promedio de lista</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+body { font-family: Arial, Helvetica, sans-serif; margin: 18px; max-width: 900px; }
+textarea { width:100%; height:140px; font-family: monospace; padding:8px; box-sizing:border-box; }
+button { padding:8px 12px; margin-top:8px; }
+#output { background:#111; color:#dcdcdc; padding:10px; min-height:80px; white-space: pre-wrap; margin-top:10px; }
+#status { margin-top:8px; color:#444; }
+#feedback { font-weight:bold; margin-top:6px; }
+</style>
 </head>
 <body>
-  <h2>Ejercicio: calcula el promedio de una lista</h2>
-  <textarea id="codigo" rows="8" style="width:100%;">
-def promedio(lista):
-    # escribe aquí
-  </textarea><br>
-  <button onclick="ejecutar()">Ejecutar</button>
-  <button onclick="revisar()">Revisar Respuesta</button>
-  <pre id="output"></pre>
+<h1>Ejercicio 1 - Promedio de lista</h1>
+<p>Escribe la función promedio(lista) que devuelva el promedio de una lista de números.</p>
 
-  <script>
-    async function ejecutar() {
-      let pyodide = await loadPyodide();
-      await pyodide.runPythonAsync(document.getElementById("codigo").value);
+<label for="python-code">Código:</label>
+<textarea id="python-code">def promedio(lista):
+    # escribe tu solución aquí
+    pass</textarea>
+
+<div>
+  <button id="run" disabled>Ejecutar</button>
+  <button id="check" disabled>Revisar y autocorregir</button>
+  <button id="clear">Limpiar salida</button>
+  <span id="status">Cargando entorno Python...</span>
+</div>
+
+<h3>Salida</h3>
+<pre id="output"></pre>
+<div id="feedback"></div>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
+<script>
+(async () => {
+  const statusEl = document.getElementById('status');
+  const runBtn = document.getElementById('run');
+  const checkBtn = document.getElementById('check');
+  try {
+    window.pyodide = await loadPyodide();
+    statusEl.textContent = 'Pyodide cargado. Listo.';
+    runBtn.disabled = false;
+    checkBtn.disabled = false;
+  } catch(e) {
+    statusEl.textContent = 'Error al cargar Pyodide.';
+    console.error(e);
+    return;
+  }
+
+  async function runAndCapture(codeText) {
+    const py = [
+      "import sys, io",
+      "buf = io.StringIO()",
+      "old_stdout = sys.stdout",
+      "sys.stdout = buf",
+      "try:"
+    ].join("\n") + "\n";
+    const indented = codeText.split("\n").map(line => "    " + line).join("\n");
+    const tail = "\nfinally:\n    sys.stdout = old_stdout\nprint(buf.getvalue(), end='')";
+    const fullPy = py + indented + tail;
+    try {
+      await window.pyodide.runPythonAsync(fullPy);
+      const out = await window.pyodide.runPythonAsync("buf.getvalue()");
+      return out;
+    } catch(err) {
+      return "Error: " + err;
     }
-    async function revisar() {
-      let pyodide = await loadPyodide();
-      let test = `
-from math import isclose
+  }
+
+  document.getElementById('run').addEventListener('click', async () => {
+    const code = document.getElementById('python-code').value;
+    document.getElementById('status').textContent = 'Ejecutando...';
+    runBtn.disabled = true;
+    document.getElementById('output').textContent = '';
+    document.getElementById('feedback').textContent = '';
+    try {
+      const res = await runAndCapture(code);
+      document.getElementById('output').textContent = res;
+    } catch(e) {
+      document.getElementById('output').textContent = 'Error inesperado: ' + e;
+    } finally {
+      runBtn.disabled = false;
+      document.getElementById('status').textContent = 'Listo.';
+    }
+  });
+
+  document.getElementById('check').addEventListener('click', async () => {
+    const code = document.getElementById('python-code').value;
+    document.getElementById('status').textContent = 'Revisando...';
+    document.getElementById('feedback').textContent = '';
+    try {
+      // run user's code and append test
+      const test = `
 try:
-    assert isclose(promedio([2,4,6]),4.0)
-    print("✔ Correcto")
-except:
-    print("❌ Incorrecto")
+    assert abs(promedio([2,4,6]) - 4.0) < 1e-6
+    print('✔ Correcto')
+except AssertionError:
+    print('❌ Incorrecto')
 `;
-      let result = await pyodide.runPythonAsync(
-        document.getElementById("codigo").value + test
-      );
-      document.getElementById("output").innerHTML = result;
+      const combined = code + "\n\n" + test;
+      const result = await window.pyodide.runPythonAsync(combined);
+      document.getElementById('feedback').textContent = result || 'Correcto';
+    } catch(err) {
+      document.getElementById('feedback').textContent = 'Incorrecto: ' + err;
+    } finally {
+      document.getElementById('status').textContent = 'Listo.';
     }
-  </script>
+  });
+
+  document.getElementById('clear').addEventListener('click', () => {
+    document.getElementById('output').textContent = '';
+    document.getElementById('feedback').textContent = '';
+  });
+
+})();
+</script>
 </body>
 </html>
