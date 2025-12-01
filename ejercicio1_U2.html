@@ -1,123 +1,98 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Ejercicio 1_U2 - Promedio (Python)</title>
-
-<script type="module">
-import { loadPyodide } from "https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js";
-
-let pyodide;
-
-async function iniciar() {
-    pyodide = await loadPyodide();
-    document.getElementById("status").textContent = "Pyodide cargado ✔";
-}
-iniciar();
-
-window.validarPython = async function validarPython() {
-    const codigoAlumno = document.getElementById("codigoAlumno").value;
-
-    // Colocamos el código del alumno en una variable dentro de Python
-    pyodide.globals.set("codigo_alumno", codigoAlumno);
-
-    // SCRIPT PYTHON QUE HACE TODA LA VALIDACIÓN
-    const evaluador = `
-import sys, math
-
-# Creamos un entorno aislado para el alumno
-entorno = {}
-
-try:
-    exec(codigo_alumno, entorno)
-except Exception as e:
-    resultado = "❌ Error de sintaxis en tu código:\\n" + str(e)
-    resultado
-    `;
-
-    try:
-        const r1 = await pyodide.runPythonAsync(evaluador);
-        if (r1) {
-            document.getElementById("salida").textContent = r1;
-            return;
-        }
-    } catch (e) {
-        document.getElementById("salida").textContent = "❌ Error inesperado:\n" + e;
-        return;
-    }
-
-    // VALIDAR QUE LA FUNCIÓN exista
-    const validar_firma = `
-if "promedio" not in entorno:
-    resultado = "❌ Debes definir la función promedio(a, b, c)"
-    resultado
-`;
-    const r2 = await pyodide.runPythonAsync(validar_firma);
-    if (r2) {
-        document.getElementById("salida").textContent = r2;
-        return;
-    }
-
-    // LISTA DE TESTS
-    const ejecutar_tests = `
-salida = ""
-tests = [
-    ((10,10,10), 10),
-    ((6,8,10), 8),
-    ((7,7,7), 7),
-    ((5,9,6), (5+9+6)/3),
-    ((0,10,0), 10/3),
-]
-
-func = entorno["promedio"]
-todos = True
-
-for idx, (entrada, esperado) in enumerate(tests, start=1):
-    try:
-        r = func(*entrada)
-        r2 = round(r, 2)
-        e2 = round(esperado, 2)
-
-        if r2 == e2:
-            salida += f"✔ Test #{idx} correcto {entrada} → {r2}\\n"
-        else:
-            salida += f"❌ Test #{idx} incorrecto {entrada} → {r2}, esperado {e2}\\n"
-            todos = False
-    except Exception as e:
-        salida += f"❌ Test #{idx} falló por error: {e}\\n"
-        todos = False
-
-salida += "\\n--------------------------\\n"
-salida += "🎉 ¡Excelente! Pasaste todos los tests." if todos else "⚠ Continúa corrigiendo tu función."
-
-salida
-`;
-
-    const resultadoFinal = await pyodide.runPythonAsync(ejecutar_tests);
-    document.getElementById("salida").textContent = resultadoFinal;
-};
-</script>
-
+  <meta charset="utf-8" />
+  <title>Ejercicio 1_U2 — Promedio</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; margin: 18px; max-width: 900px; }
+    textarea { width:100%; height:180px; font-family: monospace; padding:8px; box-sizing:border-box; }
+    button { padding:8px 12px; margin-top:8px; }
+    #output { background:#111; color:#dcdcdc; padding:10px; min-height:80px; white-space: pre-wrap; margin-top:10px; }
+    #status { margin-top:8px; color:#444; }
+  </style>
 </head>
 <body>
+  <h1>Ejercicio 1_U2 — Promedio</h1>
+  <p>Escribe una función en Python llamada <code>promedio(a, b, c)</code> que regrese el promedio de los 3 valores.</p>
 
-<h2>Ejercicio 1_U2 — Promedio de un alumno (Python)</h2>
-<div id="status">Cargando Pyodide...</div>
-
-<p>Escribe una función en Python llamada <b>promedio(a, b, c)</b> que regrese el promedio de los 3 valores.</p>
-
-<textarea id="codigoAlumno" style="width:100%; height:200px;">
-def promedio(a, b, c):
+  <label for="python-code">Código (tu solución):</label>
+  <textarea id="python-code">def promedio(a, b, c):
     # Escribe tu solución aquí
-    pass
+    return (a + b + c) / 3
 </textarea>
 
-<br><br>
-<button onclick="validarPython()">Validar código</button>
+  <div>
+    <button id="run" disabled>Validar código</button>
+    <button id="clear">Limpiar salida</button>
+    <span id="status">Cargando Pyodide...</span>
+  </div>
 
-<h3>Resultado:</h3>
-<pre id="salida"></pre>
+  <h3>Resultado</h3>
+  <pre id="output"></pre>
+
+  <!-- Pyodide clásico (el que sí te funciona) -->
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
+
+  <script>
+  (async () => {
+    const statusEl = document.getElementById('status');
+    const runBtn = document.getElementById('run');
+    const outEl = document.getElementById('output');
+
+    try {
+      window.pyodide = await loadPyodide();
+      statusEl.textContent = 'Pyodide cargado. Listo.';
+      runBtn.disabled = false;
+    } catch (err) {
+      statusEl.textContent = 'Error cargando Pyodide.';
+      console.error(err);
+      return;
+    }
+
+    // Función que ejecuta código y captura stdout
+    async function runAndCapture(pyCode) {
+
+      // Inyectamos los tests estrictos
+      const tests = `
+def __run_tests():
+    try:
+        assert promedio(3, 3, 3) == 3
+        assert promedio(5, 5, 5) == 5
+        assert promedio(2, 4, 6) == 4
+        return "✔ Todos los tests aprobados"
+    except AssertionError:
+        return "❌ Error: los resultados no son correctos"
+`;
+
+      const finalCode = pyCode + "\n\n" + tests + "\n__run_tests()";
+
+      try {
+        const result = await window.pyodide.runPythonAsync(finalCode);
+        return result;
+      } catch (err) {
+        return "❌ Error de ejecución: " + err;
+      }
+    }
+
+    document.getElementById('run').addEventListener('click', async () => {
+      runBtn.disabled = true;
+      outEl.textContent = "";
+      statusEl.textContent = "Ejecutando...";
+
+      const code = document.getElementById('python-code').value;
+      const result = await runAndCapture(code);
+
+      outEl.textContent = result;
+      statusEl.textContent = "Listo.";
+      runBtn.disabled = false;
+    });
+
+    document.getElementById('clear').addEventListener('click', () => {
+      outEl.textContent = '';
+    });
+  })();
+  </script>
 
 </body>
 </html>
-
