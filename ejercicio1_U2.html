@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Ejercicio 1_U2</title>
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+</head>
+<body>
+  <h2>Ejercicio: calcula el promedio de una lista</h2>
+  <textarea id="codigo" rows="8" style="width:100%;">
+def promedio(lista):
+    # escribe aquí
+  </textarea><br>
+  <button onclick="ejecutar()">Ejecutar</button>
+  <button onclick="revisar()">Revisar Respuesta</button>
+  <pre id="output"></pre>
+
+  <script>
+    async function ejecutar() {
+      let pyodide = await loadPyodide();
+      await pyodide.runPythonAsync(document.getElementById("codigo").value);
+    }
+    async function revisar() {
+      let pyodide = await loadPyodide();
+      let test = `
+from math import isclose
+try:
+    assert isclose(promedio([2,4,6]),4.0)
+    print("✔ Correcto")
+except:
+    print("❌ Incorrecto")
+`;
+      let result = await pyodide.runPythonAsync(
+        document.getElementById("codigo").value + test
+      );
+      document.getElementById("output").innerHTML = result;
+    }
+  </script>
+</body>
+</html>
