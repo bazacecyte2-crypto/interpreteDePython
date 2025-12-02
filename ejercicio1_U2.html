@@ -65,7 +65,6 @@ def promedio(a, b, c):
 <h3>Salida</h3>
 <pre id="output"></pre>
 
-<!-- Cargar Pyodide al final del body -->
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
 
 <script>
@@ -77,9 +76,6 @@ def promedio(a, b, c):
   const validarBtn = document.getElementById("validar");
   const autoBtn = document.getElementById("auto");
 
-  // -------------------------
-  //   Cargar Pyodide
-  // -------------------------
   try {
     window.pyodide = await loadPyodide();
     status.innerText = "Pyodide cargado ✔";
@@ -92,9 +88,6 @@ def promedio(a, b, c):
     return;
   }
 
-  // -------------------------
-  // Capturar salida Python
-  // -------------------------
   async function ejecutar(code) {
     const py = [
       "import sys, io",
@@ -120,9 +113,6 @@ def promedio(a, b, c):
     }
   }
 
-  // -------------------------
-  // Botón Ejecutar
-  // -------------------------
   runBtn.addEventListener("click", async () => {
     output.textContent = "";
     const code = document.getElementById("codigo").value;
@@ -132,17 +122,12 @@ def promedio(a, b, c):
     output.textContent = result;
   });
 
-  // -------------------------
-  // Validación estricta
-  // -------------------------
   validarBtn.addEventListener("click", async () => {
     output.textContent = "";
     const code = document.getElementById("codigo").value;
 
-    // Insertar función del alumno en el entorno
     await pyodide.runPythonAsync(code);
 
-    // Tests ocultos
     const tests = [
       {args: [6, 6, 6], esperado: 6},
       {args: [10, 5, 5], esperado: 6.666666666666667},
@@ -175,9 +160,6 @@ def promedio(a, b, c):
     }
   });
 
-  // -------------------------
-  // Autocorrección
-  // -------------------------
   autoBtn.addEventListener("click", () => {
     const solucion = `def promedio(a, b, c):
     return (a + b + c) / 3
