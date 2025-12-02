@@ -55,4 +55,144 @@ def promedio(a, b, c):
 </textarea>
 
 <div>
-  <button id="run" disab
+  <button id="run" disabled>Ejecutar código</button>
+  <button id="validar" disabled>Validar respuesta</button>
+  <button id="auto" disabled>Autocorregir</button>
+  <button id="clear">Limpiar salida</button>
+  <span id="status">Cargando Pyodide...</span>
+</div>
+
+<h3>Salida</h3>
+<pre id="output"></pre>
+
+<!-- Cargar Pyodide al final del body -->
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
+
+<script>
+(async function () {
+
+  const status = document.getElementById("status");
+  const output = document.getElementById("output");
+  const runBtn = document.getElementById("run");
+  const validarBtn = document.getElementById("validar");
+  const autoBtn = document.getElementById("auto");
+
+  // -------------------------
+  //   Cargar Pyodide
+  // -------------------------
+  try {
+    window.pyodide = await loadPyodide();
+    status.innerText = "Pyodide cargado ✔";
+    runBtn.disabled = false;
+    validarBtn.disabled = false;
+    autoBtn.disabled = false;
+  } catch (err) {
+    status.innerText = "Error cargando Pyodide ❌";
+    console.error(err);
+    return;
+  }
+
+  // -------------------------
+  // Capturar salida Python
+  // -------------------------
+  async function ejecutar(code) {
+    const py = [
+      "import sys, io",
+      "buf = io.StringIO()",
+      "old = sys.stdout",
+      "sys.stdout = buf",
+      "try:"
+    ].join("\n") + "\n";
+
+    const indent = code.split("\n").map(x => "    " + x).join("\n");
+
+    const tail =
+      "\nfinally:\n    sys.stdout = old\n" +
+      "buf.getvalue()";
+
+    const finalCode = py + indent + tail;
+
+    try {
+      const result = await pyodide.runPythonAsync(finalCode);
+      return result;
+    } catch (e) {
+      return "Error: " + e;
+    }
+  }
+
+  // -------------------------
+  // Botón Ejecutar
+  // -------------------------
+  runBtn.addEventListener("click", async () => {
+    output.textContent = "";
+    const code = document.getElementById("codigo").value;
+    status.innerText = "Ejecutando...";
+    const result = await ejecutar(code);
+    status.innerText = "Listo";
+    output.textContent = result;
+  });
+
+  // -------------------------
+  // Validación estricta
+  // -------------------------
+  validarBtn.addEventListener("click", async () => {
+    output.textContent = "";
+    const code = document.getElementById("codigo").value;
+
+    // Insertar función del alumno en el entorno
+    await pyodide.runPythonAsync(code);
+
+    // Tests ocultos
+    const tests = [
+      {args: [6, 6, 6], esperado: 6},
+      {args: [10, 5, 5], esperado: 6.666666666666667},
+      {args: [0, 0, 0], esperado: 0},
+      {args: [1, 2, 3], esperado: 2}
+    ];
+
+    let errores = [];
+
+    for (let t of tests) {
+      try {
+        const r = await pyodide.runPythonAsync(
+          `promedio(${t.args[0]}, ${t.args[1]}, ${t.args[2]})`
+        );
+
+        if (Math.abs(r - t.esperado) > 0.00001) {
+          errores.push(`❌ promedio(${t.args}) regresó ${r}, se esperaba ${t.esperado}`);
+        }
+
+      } catch (e) {
+        errores.push("❌ Error al ejecutar la función. Verifica tu código.");
+        break;
+      }
+    }
+
+    if (errores.length === 0) {
+      output.innerHTML = "<span class='correcto'>✔ ¡Correcto! Todos los tests pasaron.</span>";
+    } else {
+      output.innerHTML = "<span class='incorrecto'>✘ Hay errores:\n</span>" + errores.join("\n");
+    }
+  });
+
+  // -------------------------
+  // Autocorrección
+  // -------------------------
+  autoBtn.addEventListener("click", () => {
+    const solucion = `def promedio(a, b, c):
+    return (a + b + c) / 3
+`;
+
+    document.getElementById("codigo").value = solucion;
+    output.textContent = "Código corregido automáticamente ✔";
+  });
+
+  document.getElementById("clear").addEventListener("click", () => {
+    output.textContent = "";
+  });
+
+})();
+</script>
+
+</body>
+</html>
