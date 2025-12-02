@@ -1,105 +1,58 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Ejercicio 1_U2 — Promedio</title>
-<script src="https://cdn.jsdelivr.net/pyodide/v0.21.3/full/pyodide.js"></script>
-
-<style>
-body { font-family: Arial; max-width: 800px; margin: auto; padding: 20px; }
-textarea { width: 100%; font-size: 16px; }
-button { margin: 5px; padding: 10px 20px; font-size: 16px; }
-#resultado { font-weight: bold; }
-</style>
-
-<script>
-let pyodideReady = false;
-
-// Cargar Pyodide
-async function loadPy() {
-    document.getElementById("resultado").innerText = "Cargando Pyodide...";
-    window.pyodide = await loadPyodide();
-    pyodideReady = true;
-    document.getElementById("resultado").innerText = "Pyodide cargado. Puedes ejecutar tu código.";
-}
-loadPy();
-
-// -------------------------
-// FUNCIÓN VALIDAR CÓDIGO
-// -------------------------
-async function validar() {
-    if (!pyodideReady) {
-        alert("Pyodide aún se está cargando. Espera un momento.");
-        return;
+  <meta charset="utf-8" />
+  <title>Ejercicio 1 — Promedio de un alumno</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      max-width: 900px;
     }
-
-    const codigo = document.getElementById("codigo").value;
-
-    try {
-        await pyodide.runPythonAsync(codigo + `
-resultado = promedio(10, 10, 10)
-`);
-        let r = pyodide.globals.get("resultado");
-        document.getElementById("resultado").innerText =
-            "✔ Correcto. Promedio(10,10,10) = " + r;
-
-    } catch (error) {
-        document.getElementById("resultado").innerText =
-            "❌ Error: " + error;
+    textarea {
+      width: 100%;
+      height: 180px;
+      font-family: monospace;
+      padding: 10px;
+      font-size: 15px;
     }
-}
-
-// -------------------------
-// FUNCIÓN AUTOCORREGIR
-// -------------------------
-async function autocorregir() {
-    const codigoOriginal = document.getElementById("codigo").value;
-    let codigoCorregido = codigoOriginal;
-
-    // Si el alumno dejó pass o no tiene return → corregimos
-    if (codigoOriginal.includes("pass") || !codigoOriginal.includes("return")) {
-        codigoCorregido = `
-def promedio(a, b, c):
-    return (a + b + c) / 3
-        `;
+    button {
+      padding: 10px 15px;
+      margin: 6px 4px;
+      font-size: 14px;
+      cursor: pointer;
     }
-
-    try {
-        await pyodide.runPythonAsync(codigoCorregido + `
-resultado = promedio(10, 10, 10)
-`);
-        let r = pyodide.globals.get("resultado");
-
-        document.getElementById("codigo").value = codigoCorregido;
-        document.getElementById("resultado").innerText =
-            "✔ Ejercicio autocorregido (resultado: " + r + ")";
-
-    } catch (error) {
-        document.getElementById("resultado").innerText =
-            "❌ Error en autocorrección: " + error;
+    #output {
+      background: #111;
+      color: #eee;
+      padding: 10px;
+      margin-top: 10px;
+      white-space: pre-wrap;
+      min-height: 80px;
+      border-radius: 6px;
     }
-}
-</script>
-
+    #status {
+      margin-top: 10px;
+      color: #444;
+      font-weight: bold;
+    }
+    .correcto { color: green; font-weight: bold; }
+    .incorrecto { color: red; font-weight: bold; }
+  </style>
 </head>
 
 <body>
 
-<h2>Ejercicio 1_U2 — Promedio de un alumno (Python)</h2>
+<h1>Ejercicio 1 — Promedio de un alumno</h1>
 
-<p>Escribe una función en Python llamada <b>promedio(a, b, c)</b> que regrese el promedio de 3 números.</p>
+<p>Escribe la función <code>promedio(a, b, c)</code> que regrese el promedio de 3 valores.</p>
 
-<textarea id="codigo" rows="10">
+<textarea id="codigo">
 def promedio(a, b, c):
     # Escribe tu solución aquí
     pass
 </textarea>
 
-<br>
-<button onclick="validar()">Validar código</button>
-<button onclick="autocorregir()">Autocorregir ejercicio</button>
-
-<p>Resultado: <span id="resultado"></span></p>
-
-</body>
-</html>
+<div>
+  <button id="run" disab
